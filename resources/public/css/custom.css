@@ -6,11 +6,11 @@ div.board {
     min-width: 560px;
 }
 
-div.row {
+div.board-row {
     text-align: center;
 }
 
-div.cell {
+div.board-cell {
     display: inline-block;
     /* To make empty inline-block divs display correctly: */
     vertical-align: bottom;
@@ -27,74 +27,74 @@ div.cell {
     color: black;
 }
 
-div.cell-2 {
+div.board-cell-2 {
     background-color: rgb(255, 235, 59);
 }
 
-div.cell-4 {
+div.board-cell-4 {
     background-color: rgb(255, 193, 7);
 }
 
-div.cell-8 {
+div.board-cell-8 {
     background-color: rgb(255, 152, 0);
 }
 
-div.cell-16 {
+div.board-cell-16 {
     background-color: rgb(255, 100, 50);
 }
 
-div.cell-32 {
+div.board-cell-32 {
     background-color: rgb(244, 67, 54);
 }
 
-div.cell-64 {
+div.board-cell-64 {
     background-color: rgb(233, 30, 99);
 }
 
-div.cell-128 {
+div.board-cell-128 {
     background-color: rgb(240, 13, 225);
 }
 
-div.cell-256 {
+div.board-cell-256 {
     background-color: rgb(190, 240, 57);
 }
 
-div.cell-512 {
+div.board-cell-512 {
     background-color: rgb(76, 195, 100);
 }
 
-div.cell-1024 {
+div.board-cell-1024 {
     background-color: rgb(20, 190, 136);
 }
 
-div.cell-2048 {
+div.board-cell-2048 {
     background-color: rgb(33, 130, 243);
 }
 
-div.cell-4096 {
+div.board-cell-4096 {
     background-color: rgb(156, 39, 176);
 }
 
-div.cell-8192 {
+div.board-cell-8192 {
     background-color: rgb(63, 81, 181);
 }
 
-div.cell-16384 {
+div.board-cell-16384 {
     background-color: rgb(103, 58, 183);
 }
 
-div.cell-32768 {
+div.board-cell-32768 {
     background-color: rgb(96, 125, 139);
 }
 
 
-div.cell-65536 {
+div.board-cell-65536 {
     background-color: black;
     color: white;
 }
 
 
-div.cell-131072 {
+div.board-cell-131072 {
     background-color: red;
     font-size: 28px;
 }

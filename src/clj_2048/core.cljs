@@ -11,11 +11,11 @@
   (r/atom {:board (powers-board 4)}))
 
 (defn cell [number]
-  [:div.cell {:class (str "cell-" number)}
+  [:div.board-cell {:class (str "board-cell-" number)}
    (if (pos? number) number "")])
 
 (defn row [board-row]
-  [:div.row (map cell board-row)])
+  [:div.board-row (map cell board-row)])
 
 (defn board [board-table]
   [:div.board
