@@ -1,4 +1,4 @@
-# clj-2048
+# cljs-2048
 
 A 2048 game in ClojureScript.
 

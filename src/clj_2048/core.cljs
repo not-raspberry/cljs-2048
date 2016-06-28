@@ -1,4 +1,4 @@
-(ns clj-2048.core
+(ns cljs-2048.core
   (:require ))
 
 (enable-console-print!)
