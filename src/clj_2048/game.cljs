@@ -107,7 +107,7 @@
   (->> board
        (map-indexed
          (fn [i row]
-           (for [zero (zeros-in-row row)] [i zero])))
+           (for [zero-row-index (zeros-in-row row)] [i zero-row-index])))
        (apply concat)))
 
 (defn inject-number

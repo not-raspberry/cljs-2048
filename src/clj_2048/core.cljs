@@ -14,16 +14,17 @@
 (defonce game-state
   (r/atom {:board (game/new-board 4)}))
 
-(defn cell [number]
-  [:div.board-cell {:class (str "board-cell-" number)}
+(defn cell [k number]
+  [:div.board-cell {:class (str "board-cell-" number)
+                    :key k}
    (if (pos? number) number "")])
 
-(defn row [board-row]
-  [:div.board-row (map cell board-row)])
+(defn row [k board-row]
+  [:div.board-row {:key k} (map-indexed cell board-row)])
 
 (defn board [board-table]
   [:div.board
-   (map row board-table)])
+   (map-indexed row board-table)])
 
 (defn app-ui []
   [board (:board @game-state)])
