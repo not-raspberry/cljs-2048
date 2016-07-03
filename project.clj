@@ -23,7 +23,9 @@
               [{:id "dev"
                 :source-paths ["src"]
 
-                :figwheel {:on-jsload "cljs-2048.core/on-js-reload"}
+                :figwheel
+                {:on-jsload "cljs-2048.core/on-js-reload"
+                 :websocket-host :js-client-host}
                 :compiler {:main cljs-2048.core
                            :asset-path "js/compiled/out"
                            :output-to "resources/public/js/compiled/clj_2048.js"

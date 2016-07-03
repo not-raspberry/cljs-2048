@@ -1,5 +1,6 @@
 (ns cljs-2048.core
-  (:require [reagent.core :as r]
+  (:require [goog.events :as events]
+            [reagent.core :as r]
             [cljs-2048.game :as game]))
 
 (enable-console-print!)
@@ -43,8 +44,32 @@
   (swap! game-state
          #(update % :board game-turn direction)))
 
+(def handled-keys
+  {38 :up
+   87 :up
+   40 :down
+   83 :down
+   37 :left
+   65 :left
+   39 :right
+   68 :right})
+
+(defn on-keydown [e]
+  "Handles w, s, a, d or arrow keys.
+
+  Ignores the event if some modifiers are pressed."
+  (let [direction (handled-keys (.-keyCode e))
+        modifiers (map (partial aget e)
+                       ["ctrlKey" "shiftKey" "altKey" "metaKey"])]
+    (if (and direction (not-any? true? modifiers))
+      (do
+        (.preventDefault e)
+        (turn! direction)))))
 
 (defn ^:export on-js-reload []
   (r/render [app-ui]
             (.getElementById js/document "content"))
+  ; Remove events from the previous (re-)load:
+  (events/removeAll (.-body js/document) "keydown")
+  (events/listen (.-body js/document) "keydown" on-keydown)
   (println "Cljs reloaded."))
