@@ -1,9 +1,9 @@
 div.page-header {
-    margin-top: 60px;
+    margin-top: 80px;
 }
 
 div.board {
-    min-width: 560px;
+    min-width: 540px;
 }
 
 div.board-row {
@@ -14,13 +14,13 @@ div.board-cell {
     display: inline-block;
     /* To make empty inline-block divs display correctly: */
     vertical-align: bottom;
-    width: 120px;
-    height: 120px;
+    width: 110px;
+    height: 110px;
     margin: 10px;
     border: 3px solid #555;
     border-radius: 20px;
     text-align: center;
-    line-height: 120px;  /* Vertical align for the contents (a single line). */
+    line-height: 110px;  /* Vertical align for the contents (a single line). */
     font-size: 36px;
     font-weight: bold;
     background-color: #bbb;
@@ -87,12 +87,10 @@ div.board-cell-32768 {
     background-color: rgb(96, 125, 139);
 }
 
-
 div.board-cell-65536 {
     background-color: black;
     color: white;
 }
-
 
 div.board-cell-131072 {
     background-color: red;

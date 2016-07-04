@@ -13,42 +13,31 @@
     <![endif]-->
   </head>
   <body>
-    <div class="navbar navbar-default navbar-fixed-top">
-      <div class="container">
-        <div class="navbar-header">
-          <a href="#" class="navbar-brand"><strong>2048 in ClojureScript</strong></a>
-        </div>
-		
-        <div class="navbar-collapse collapse" id="navbar-main">
-		  <ul class="nav navbar-nav navbar-right">
-            <li>
-              <a href="https://github.com/not-raspberry/cljs-2048" target="_blank">
-                GitHub&nbsp;&nbsp;
-                <span class="glyphicon glyphicon glyphicon-new-window" aria-hidden="true"></span>
-                <!-- Yes, I used 2 nbsps because 1 was not enough. I am not
-                     a designer, I'm a programmer. At least I don't leave
-                     trailing whitespace ^^. -->
-              </a>
-            </li>
-		  </ul>
-		
-        </div>
-      </div>
-    </div>
+    <!--
+        That's some markup mirroring what's rendered by Reagent, to provide
+        some eye-candy while the JS is loading.
+    -->
+    <div id="content">
+      <div class="navbar navbar-default navbar-fixed-top">
+        <div class="container">
+          <div class="navbar-header">
+            <a href="#" class="navbar-brand"><strong>Reach 2048</strong></a>
+          </div>
 
-
-    <div class="container">
-      <div class="page-header" id="banner">
-        <div class="row">
-          <div class="col-lg-6">
-            <h1>Play 2048!</h1>
-            <p class="lead">Combine numbers to reach 2048.</p>
+          <div class="navbar-collapse collapse" id="navbar-main">
+            <ul class="nav navbar-nav navbar-right">
+                <li>
+                  <a href="https://github.com/not-raspberry/cljs-2048" target="_blank">
+                    GitHub&nbsp;&nbsp;
+                    <span class="glyphicon glyphicon glyphicon-new-window" aria-hidden="true"></span>
+                  </a>
+                </li>
+            </ul>
           </div>
         </div>
       </div>
-    </div>
 
-      <div class="container" id="content">
+      <div class="container page-header">
         <h5 id="progress-animated" class="text-center">It's loading...</h5>
         <div class="bs-component">
           <div class="progress progress-striped active">
@@ -56,6 +45,7 @@
           </div>
         </div>
       </div>
+    </div>
 
     <script src="js/compiled/clj_2048.js" type="application/javascript"></script>
     <script type="application/javascript">cljs_2048.core.on_js_reload();</script>

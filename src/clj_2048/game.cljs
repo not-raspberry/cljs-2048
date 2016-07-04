@@ -125,3 +125,22 @@
    (let [location (rand-nth-new-number-fn empty-fields-coords)
          new-cell-val (cell-value-function)]
      (assoc-in board location new-cell-val))))
+
+(defn game-turn
+  "Processes the game state according to the passed turn.
+
+  Depending on the passed state and the direction, the resulting state may be:
+  - game in progress, some fields moved/squashed
+  - game lost - no possible moves
+  - illegal move - squashing the fields in certain direction will not result
+    in fields moved/squashed.
+  "
+  [{prev-board :board phase :phase :as prev-state} direction]
+  (let [squashed-board (squash-board prev-board direction)]
+    (if (= squashed-board prev-board)
+      prev-state  ; Illegal move - ignore.
+      (let [new-board (inject-number
+                        squashed-board (zeros-locations squashed-board))]
+        (if (unplayable? new-board)
+          (assoc prev-state :phase :lost, :board new-board)
+          (assoc prev-state :board new-board))))))

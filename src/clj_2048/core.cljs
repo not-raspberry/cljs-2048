@@ -5,16 +5,12 @@
 
 (enable-console-print!)
 
+(declare game-state)
 
-(defn powers-board
-  "Generates a board with zero and consecutive powers in it.
-  Useful for adjusting cell colors for diffferent numbers."
-  [size]
-  (take size (partition size (cons 0 (iterate #(* % 2) 2)))))
 
-(defonce game-state
-  (r/atom {:board (game/new-board 4)
-           :phase :playing}))  ; can be: :playing, :lost
+(defn initial-game-state []
+  {:board (game/new-board 4)
+   :phase :playing})  ; phase can be: :playing, :lost
 
 (defn cell [k number]
   [:div.board-cell {:class (str "board-cell-" number)
@@ -25,35 +21,34 @@
   [:div.board-row {:key k} (map-indexed cell board-row)])
 
 (defn board [board-table]
-  [:div.board
+  [:div.board.page-header
    (map-indexed row board-table)])
 
+(defn app-header []
+  [:div {:class "navbar navbar-default navbar-fixed-top"}
+   [:div {:class "container"}
+	[:div {:class "navbar-header"}
+	 [:a {:class "navbar-brand", :href "#"}
+	  [:strong "Reach 2048"]]]
+	[:div {:id "navbar-main", :class "navbar-collapse collapse"}
+	 [:ul {:class "nav navbar-nav navbar-right"}
+	  [:li
+	   [:a {:target "_blank"
+	        :href "https://github.com/not-raspberry/cljs-2048"}
+        "GitHub  "
+		[:span {:aria-hidden "true"
+                :class "glyphicon glyphicon glyphicon-new-window"}]]]]]]])
+
 (defn app-ui []
-  [board (:board @game-state)])
-
-(defn game-turn
-  "Processes the game state according to the passed turn.
-
-  Depending on the passed state and the direction, the resulting state may be:
-  - game in progress, some fields moved/squashed
-  - game lost - no possible moves
-  - illegal move - squashing the fields in certain direction will not result
-    in fields moved/squashed.
-  "
-  [{prev-board :board phase :phase :as prev-state} direction]
-  (let [squashed-board (game/squash-board prev-board direction)]
-    (if (= squashed-board prev-board)
-      prev-state  ; Illegal move - ignore.
-      (let [new-board (game/inject-number
-                        squashed-board (game/zeros-locations squashed-board))]
-        (if (game/unplayable? new-board)
-          (assoc prev-state :phase :lost, :board new-board)
-          (assoc prev-state :board new-board))))))
+  (let [{game-board :board phase :phase} @game-state]
+    [:div
+     [app-header]
+     [board game-board]]))
 
 (defn turn!
   "Updates the game state with results of a turn."
   [direction]
-  (swap! game-state game-turn direction))
+  (swap! game-state game/game-turn direction))
 
 (def handled-keys
   {38 :up
@@ -75,6 +70,9 @@
     (when (and direction (not-any? true? modifiers))
       (.preventDefault e)
       (turn! direction))))
+
+
+(defonce game-state (r/atom (initial-game-state)))
 
 (defn ^:export on-js-reload []
   (r/render [app-ui]
