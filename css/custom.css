@@ -1,0 +1,98 @@
+div.page-header {
+    margin-top: 80px;
+}
+
+div.board {
+    min-width: 540px;
+}
+
+div.board-row {
+    text-align: center;
+}
+
+div.board-cell {
+    display: inline-block;
+    /* To make empty inline-block divs display correctly: */
+    vertical-align: bottom;
+    width: 110px;
+    height: 110px;
+    margin: 10px;
+    border: 3px solid #555;
+    border-radius: 20px;
+    text-align: center;
+    line-height: 110px;  /* Vertical align for the contents (a single line). */
+    font-size: 36px;
+    font-weight: bold;
+    background-color: #bbb;
+    color: black;
+}
+
+div.board-cell-2 {
+    background-color: rgb(255, 235, 59);
+}
+
+div.board-cell-4 {
+    background-color: rgb(255, 193, 7);
+}
+
+div.board-cell-8 {
+    background-color: rgb(255, 152, 0);
+}
+
+div.board-cell-16 {
+    background-color: rgb(255, 100, 50);
+}
+
+div.board-cell-32 {
+    background-color: rgb(244, 67, 54);
+}
+
+div.board-cell-64 {
+    background-color: rgb(233, 30, 99);
+}
+
+div.board-cell-128 {
+    background-color: rgb(240, 13, 225);
+}
+
+div.board-cell-256 {
+    background-color: rgb(190, 240, 57);
+}
+
+div.board-cell-512 {
+    background-color: rgb(76, 195, 100);
+}
+
+div.board-cell-1024 {
+    background-color: rgb(20, 190, 136);
+}
+
+div.board-cell-2048 {
+    background-color: rgb(33, 130, 243);
+}
+
+div.board-cell-4096 {
+    background-color: rgb(156, 39, 176);
+}
+
+div.board-cell-8192 {
+    background-color: rgb(63, 81, 181);
+}
+
+div.board-cell-16384 {
+    background-color: rgb(103, 58, 183);
+}
+
+div.board-cell-32768 {
+    background-color: rgb(96, 125, 139);
+}
+
+div.board-cell-65536 {
+    background-color: black;
+    color: white;
+}
+
+div.board-cell-131072 {
+    background-color: red;
+    font-size: 28px;
+}
