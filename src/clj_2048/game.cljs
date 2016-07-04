@@ -6,7 +6,7 @@
 (defn empty-board
   "Returns a size × size matrix of zeros."
   [size]
-  (into [] (repeat size (into [] (repeat size 0)))))
+  (vec (repeat size (vec (repeat size 0)))))
 
 (defn ^:export new-board
   "Returns a size × size board with 2 initial values (twos or fours)
@@ -100,6 +100,13 @@
   (keep-indexed
     (fn [index item] (when (zero? item) index))
     row))
+
+(defn unplayable?
+  "Returns true if it's not possible to move/combine fields in any direction."
+  [board]
+  (not-any? #(not= board %)
+            (map (partial squash-board board)
+                 [:up :left :down :right])))
 
 (defn zeros-locations
   "Returns 2-tuples of coordinates of zero cells in the board."
