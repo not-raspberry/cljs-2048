@@ -6,9 +6,9 @@ Written because I lost my phone, so I had to buy a new one. Google Play worked
 well on the new phone (unlike the old one) so I could download a 2048 game and
 kind of get obsessed by it for a few days.
 
-## Overview
+## Play online
 
-I'm going to host it on Github pages.
+https://not-raspberry.github.io/cljs-2048/
 
 ## Development
 
