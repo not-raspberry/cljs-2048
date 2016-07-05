@@ -133,8 +133,7 @@
   - game in progress, some fields moved/squashed
   - game lost - no possible moves
   - illegal move - squashing the fields in certain direction will not result
-    in fields moved/squashed.
-  "
+    in fields moved/squashed."
   [{prev-board :board phase :phase :as prev-state} direction]
   (let [squashed-board (squash-board prev-board direction)]
     (if (= squashed-board prev-board)
@@ -142,5 +141,5 @@
       (let [new-board (inject-number
                         squashed-board (zeros-locations squashed-board))]
         (if (unplayable? new-board)
-          (assoc prev-state :phase :lost, :board new-board)
-          (assoc prev-state :board new-board))))))
+          {:phase :lost, :board new-board}
+          {:phase :playing, :board new-board})))))

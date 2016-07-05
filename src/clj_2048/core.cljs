@@ -10,7 +10,8 @@
 
 (defn initial-game-state []
   {:board (game/new-board 4)
-   :phase :playing})  ; phase can be: :playing, :lost
+   ; phase can be: :init (before the first move), :playing, :lost,
+   :phase :init})
 
 (defn cell [k number]
   [:div.board-cell {:class (str "board-cell-" number)
@@ -24,25 +25,30 @@
   [:div.board.page-header
    (map-indexed row board-table)])
 
-(defn app-header []
+(defn app-header [phase]
   [:div {:class "navbar navbar-default navbar-fixed-top"}
    [:div {:class "container"}
-	[:div {:class "navbar-header"}
-	 [:a {:class "navbar-brand", :href "#"}
-	  [:strong "Reach 2048"]]]
-	[:div {:id "navbar-main", :class "navbar-collapse collapse"}
-	 [:ul {:class "nav navbar-nav navbar-right"}
-	  [:li
-	   [:a {:target "_blank"
-	        :href "https://github.com/not-raspberry/cljs-2048"}
-        "GitHub  "
-		[:span {:aria-hidden "true"
+    [:div {:class "navbar-header"}
+     [:a {:class "navbar-brand", :href "#"}
+      [:strong
+       (case phase
+         :init "Use arrows/wsad to play"
+         :playing "Reach 2048"
+         :lost "Game over")
+       ]]]
+    [:div {:id "navbar-main", :class "navbar-collapse collapse"}
+     [:ul {:class "nav navbar-nav navbar-right"}
+      [:li
+       [:a {:target "_blank"
+            :href "https://github.com/not-raspberry/cljs-2048"}
+        "GitHub\u00a0\u00a0"
+        [:span {:aria-hidden "true"
                 :class "glyphicon glyphicon glyphicon-new-window"}]]]]]]])
 
 (defn app-ui []
   (let [{game-board :board phase :phase} @game-state]
     [:div
-     [app-header]
+     [app-header phase]
      [board game-board]]))
 
 (defn turn!
