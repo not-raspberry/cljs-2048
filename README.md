@@ -4,11 +4,17 @@ A 2048 game in ClojureScript.
 
 Written because I lost my phone, so I had to buy a new one. Google Play worked
 well on the new phone (unlike the old one) so I could download a 2048 game and
-kind of get obsessed by it for a few days.
+I kind of got obsessed with it for a few days.
 
 ## Play online
 
 https://not-raspberry.github.io/cljs-2048/
+
+## TODO
+
+- change color scheme
+- mobile support
+- animations
 
 ## Development
 
