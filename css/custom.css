@@ -1,7 +1,21 @@
+/* Reset some weirdness of the template. */
+span.navbar-brand:hover {
+    color: white !important;
+}
+
+a, a:focus{
+    color: white;
+}
+
+a:hover {
+    color: #ddd;
+}
+
 div.page-header {
     margin-top: 80px;
 }
 
+/* Board layout. */
 div.board {
     min-width: 540px;
 }
