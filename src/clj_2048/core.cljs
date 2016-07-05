@@ -30,16 +30,21 @@
   [:div.board.page-header
    (map-indexed row board-table)])
 
-(defn app-header [phase]
+(defn game-status [board phase]
+  (let [points (apply + (flatten board))
+        points-message (if (< 2048 points)
+                         " points!" " / 2048")]
+    (case phase
+      :init "Use arrows/wsad to play"
+      :playing (str points points-message)
+      :lost (str "Game over - " points " points"))))
+
+(defn app-header [board phase]
   [:div {:class "navbar navbar-default navbar-fixed-top"}
    [:div.container
     [:div {:class "navbar-header"}
      [:span {:class "navbar-brand"}
-      [:strong
-       (case phase
-         :init "Use arrows/wsad to play"
-         :playing "Reach 2048"
-         :lost "Game over")]
+      [:strong (game-status board phase)]
       (spacing 3)
       [:a {:href "#"
            :title "Again"
@@ -58,7 +63,7 @@
 (defn app-ui []
   (let [{game-board :board phase :phase} @game-state]
     [:div
-     [app-header phase]
+     [app-header game-board phase]
      [board game-board]]))
 
 (defn turn!
