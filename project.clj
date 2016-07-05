@@ -28,12 +28,12 @@
                  :websocket-host :js-client-host}
                 :compiler {:main cljs-2048.core
                            :asset-path "js/compiled/out"
-                           :output-to "resources/public/js/compiled/clj_2048.js"
+                           :output-to "resources/public/js/compiled/cljs_2048.js"
                            :output-dir "resources/public/js/compiled/out"
                            :source-map-timestamp true}}
                {:id "min"
                 :source-paths ["src"]
-                :compiler {:output-to "resources/public/js/compiled/clj_2048.js"
+                :compiler {:output-to "resources/public/js/compiled/cljs_2048.js"
                            :main cljs-2048.core
                            :optimizations :advanced
                            :pretty-print false}}]}
