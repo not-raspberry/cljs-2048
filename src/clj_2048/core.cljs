@@ -13,6 +13,11 @@
    ; phase can be: :init (before the first move), :playing, :lost,
    :phase :init})
 
+(defn spacing
+  "Returns the requested number of nbsps as a string."
+  [width]
+  (apply str (repeat width "\u00a0")))
+
 (defn cell [k number]
   [:div.board-cell {:class (str "board-cell-" number)
                     :key k}
@@ -27,21 +32,26 @@
 
 (defn app-header [phase]
   [:div {:class "navbar navbar-default navbar-fixed-top"}
-   [:div {:class "container"}
+   [:div.container
     [:div {:class "navbar-header"}
-     [:a {:class "navbar-brand", :href "#"}
+     [:span {:class "navbar-brand"}
       [:strong
        (case phase
          :init "Use arrows/wsad to play"
          :playing "Reach 2048"
-         :lost "Game over")
-       ]]]
-    [:div {:id "navbar-main", :class "navbar-collapse collapse"}
+         :lost "Game over")]
+      (spacing 3)
+      [:a {:href "#"
+           :title "Again"
+           :on-click #(reset! game-state (initial-game-state))}
+       [:span {:aria-hidden "true"
+               :class "glyphicon glyphicon glyphicon-refresh"}]]]]
+    [:div {:class "navbar-collapse collapse"}
      [:ul {:class "nav navbar-nav navbar-right"}
       [:li
        [:a {:target "_blank"
             :href "https://github.com/not-raspberry/cljs-2048"}
-        "GitHub\u00a0\u00a0"
+        "GitHub" (spacing 2)
         [:span {:aria-hidden "true"
                 :class "glyphicon glyphicon glyphicon-new-window"}]]]]]]])
 
