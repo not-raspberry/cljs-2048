@@ -1,5 +1,6 @@
 (ns cljs-2048.core
-  (:require [goog.events :as events]
+  (:require [clojure.set :as s]
+            [goog.events :as events]
             [reagent.core :as r]
             [cljs-2048.game :as game]))
 
@@ -11,7 +12,38 @@
 (defn initial-game-state []
   {:board (game/new-board 4)
    ; phase can be: :init (before the first move), :playing, :lost,
-   :phase :init})
+   :phase :init
+   ; nil or a float between 0 and 1, where 1 is finished animation
+   :animation-progress nil})
+
+(defn select-values [m ks]
+  (map m ks))
+
+(defn vector-subtraction
+  "Subtracts each number of the first coll by the corresponding number in the second coll"
+  [coll1 coll2]
+  (map - coll1 coll2))
+
+(defn transition-offsets [old-state new-state]
+  "Returns a map of cells' ids to offsets (in full fields) they should move when
+  animating the transition from the previous state to the new one.
+
+  The offset [-1 0] means 1 cell left.
+
+  E.g.:
+  {cell-7987 (0 -3), cell-7674 (0 0), cell-7964 (0 -2), cell-7928 (0 0), cell-7919 (0 -2), ...}"
+  (let [old-indices-to-locations (game/cell-ids-to-locations old-state)
+        new-indices-to-locations (game/cell-ids-to-locations new-state)
+        ; shared elements that did not move will be moved by zero
+        shared-cells-ids (s/intersection
+                           (apply hash-set (keys old-indices-to-locations))
+                           (apply hash-set (keys new-indices-to-locations)))]
+    (zipmap
+      shared-cells-ids
+      (map
+        vector-subtraction
+        (select-values new-indices-to-locations shared-cells-ids)
+        (select-values old-indices-to-locations shared-cells-ids)))))
 
 (defn spacing
   "Returns the requested number of nbsps as a string."
