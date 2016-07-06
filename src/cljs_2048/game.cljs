@@ -3,22 +3,51 @@
 
 (declare inject-number zeros-locations)
 
-(defn empty-board
-  "Returns a size × size matrix of zeros."
-  [size]
-  (vec (repeat size (vec (repeat size 0)))))
+(defrecord Cell
+  [value      ; numeric value of the cell, a power of 2; zero for empty cells
+   id         ; unique ID of this cell
+   made-of])  ; a vector of IDs of cells this cell was made by joining together
 
-(defn ^:export new-board
+(defn make-cell
+  ([] (make-cell 0 nil))
+  ([value] (make-cell value nil))
+  ([value made-of]
+    (->Cell value (gensym "cell-") made-of)))
+
+(defn cell-empty? [cell]
+  (zero? (:value cell)))
+
+(defn joined-cells
+  "Joins pairs of cells of the same value from the arguments sequence together."
+  ([c1] c1)
+  ([c1 c2]
+   (make-cell (apply + (map :value [c1 c2]))
+              (mapv :id [c1 c2]))))
+
+(defn empty-board
+  "Returns a size × size matrix of zeros.
+
+  Each zero cell will have a distinct ID. Not that it matters, because
+  zero cells are not conjoined together."
+  [size]
+  (vec (repeatedly size #(vec (repeatedly size make-cell)))))
+
+(defn new-board
   "Returns a size × size board with 2 initial values (twos or fours)
   and the rest of zeros."
   [size]
-  (let [add-zeros-carelessly
+  (let [add-cell-carelessly
         (fn [board]
           (inject-number board (zeros-locations board)))]
-    (-> (empty-board size)       ; Empty board is going to have all the zeros
-        add-zeros-carelessly     ; in the world so we can just add the zeros
-        add-zeros-carelessly)))  ; without checking if there's room for them.
+    (-> (empty-board size)      ; Empty board is going to have all the zeros
+        add-cell-carelessly     ; in the world so we can just add the zeros
+        add-cell-carelessly)))  ; without checking if there's room for them.
 
+(defn board-cells [board]
+  (flatten board))
+
+(defn board-score [board]
+  (apply + (map :value (board-cells board))))
 
 (defn transpose [board]
   (apply (partial map vector) board))
@@ -32,13 +61,16 @@
   "Sums pairs of equal numbers in a row together by squashing them left."
   [row-nums]
   (->> row-nums
-       (remove zero?)
-       (partition-by identity)
+       (remove cell-empty?)
+       (partition-by :value)
        (mapcat #(partition-all 2 %))
-       (map #(* (count %) (first %)))))
+       (map #(apply joined-cells %))))
 
-(defn zero-pad [size combined-row]
-  (concat combined-row (repeat (- size (count combined-row)) 0)))
+(defn empty-pad
+  "Pad the row, up to the `size` with empty cells."
+  [size combined-row]
+  (concat combined-row (repeatedly (- size (count combined-row))
+                                   make-cell)))
 
 (def view-transformations
   "A map of operations that cast the board to the shape that makes combining
@@ -89,7 +121,7 @@
   "Combines fields in the given direction."
   [board direction]
   (->> (board->left-view direction board)
-       (map (comp (partial zero-pad (count board))
+       (map (comp (partial empty-pad (count board))
                   combine-left))
        (left-view->board direction)
        revectorize))
@@ -98,15 +130,8 @@
   "Returns indices of zero values in the row."
   [row]
   (keep-indexed
-    (fn [index item] (when (zero? item) index))
+    (fn [index item] (when (cell-empty? item) index))
     row))
-
-(defn unplayable?
-  "Returns true if it's not possible to move/combine fields in any direction."
-  [board]
-  (not-any? #(not= board %)
-            (map (partial squash-board board)
-                 [:up :left :down :right])))
 
 (defn zeros-locations
   "Returns 2-tuples of coordinates of zero cells in the board."
@@ -123,8 +148,15 @@
    (inject-number board empty-fields-coords rand-nth #(rand-nth [2 2 4])))
   ([board empty-fields-coords rand-nth-new-number-fn cell-value-function]
    (let [location (rand-nth-new-number-fn empty-fields-coords)
-         new-cell-val (cell-value-function)]
+         new-cell-val (make-cell (cell-value-function))]
      (assoc-in board location new-cell-val))))
+
+(defn unplayable?
+  "Returns true if it's not possible to move/combine fields in any direction."
+  [board]
+  (not-any? #(not= board %)
+            (map (partial squash-board board)
+                 [:up :left :down :right])))
 
 (defn game-turn
   "Processes the game state according to the passed turn.
