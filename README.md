@@ -12,9 +12,8 @@ https://not-raspberry.github.io/cljs-2048/
 
 ## TODO
 
-- change color scheme
+- change color scheme (and make the tiles flat)
 - mobile support
-- animations
 
 ## Development
 
