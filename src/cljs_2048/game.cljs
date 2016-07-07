@@ -46,8 +46,11 @@
 (defn board-cells [board]
   (flatten board))
 
+(defn board-cell-values [board]
+  (map :value (board-cells board)))
+
 (defn board-score [board]
-  (apply + (map :value (board-cells board))))
+  (apply + (board-cell-values board)))
 
 (defn mapcat-indexed [f coll]
   (apply concat (map-indexed f coll)))
@@ -192,7 +195,7 @@
     in fields moved/squashed."
   [{prev-board :board phase :phase :as prev-state} direction]
   (let [squashed-board (squash-board prev-board direction)]
-    (if (= squashed-board prev-board)
+    (if (= (board-cell-values squashed-board) (board-cell-values prev-board))
       prev-state  ; Illegal move - ignore.
       (let [new-board (inject-number
                         squashed-board (zeros-locations squashed-board))]

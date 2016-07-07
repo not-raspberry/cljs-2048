@@ -10,9 +10,12 @@
 
 
 (defn initial-game-state []
-  {:board (game/new-board 4)
-   ; phase can be: :init (before the first move), :playing, :lost,
-   :phase :init
+  {:current-state
+   {:board (game/new-board 4)
+    ; phase can be: :init (before the first move), :playing, :lost,
+    :phase :init}
+   :previous-state nil
+   :translations []
    ; nil or a float between 0 and 1, where 1 is finished animation
    :animation-progress nil})
 
@@ -50,19 +53,64 @@
   [width]
   (apply str (repeat width "\u00a0")))
 
-(defn cell-component [k cell]
-  (let [number (:value cell)]
-    [:div.board-cell {:class (str "board-cell-" number)
-                      :key k}
-     (if (pos? number) number "")]))
+(def cell-size 130)  ; px
+(def animation-duration 100)  ; ms
+(def animation-frame-length 10)  ; ms
+
+(defn update-progress [last-progress]
+  (min 1
+    (+ last-progress
+       (/ animation-frame-length animation-duration))))
+
+(defn play-animations! [on-animaitons-end]
+  (swap! game-state assoc :animation-progress 0)
+
+  (let [interval-id (atom)]
+    (reset!
+      interval-id
+      (js/setInterval
+        (fn animate []
+          (let [{progress :animation-progress}
+                (swap! game-state update :animation-progress
+                       update-progress)]
+            (when (= progress 1)
+              (js/clearInterval @interval-id)
+              (on-animaitons-end))))
+        animation-frame-length))))
+
+(defn cell-translation
+  [translation-row-col progress]
+  (let [[css-y css-x]
+        (map #(str (* progress cell-size %) "px") translation-row-col)]
+    {:position :absolute, :top css-y, :left css-x
+     ; put elements that move the on top:
+     :z-index (apply + (map js/Math.abs translation-row-col))}))
+
+
+(defn cell-component
+  "Renders a cell, what consists of one static box that represents a field
+  on the board and optionally one number cell, which is rendered on top of it
+  and subject to animations."
+  [k cell]
+  (let [number (:value cell)
+        {progress :animation-progress
+          {translation-offset (:id cell)} :translations} @game-state
+        style (if translation-offset
+                (cell-translation translation-offset progress))]
+    [:div.board-cell {:style {:position :relative} :key k}  ; board field
+     (if (pos? number)  ; number cell
+       [:div.board-cell.board-cell-numeric
+        {:class (str "board-cell-" number)
+         :style style}
+        number])]))
 
 (defn row-component [k board-row]
   [:div.board-row {:key k}
-   (map-indexed cell-component board-row)])
+   (doall (map-indexed cell-component board-row))])
 
 (defn board-component [board-table]
   [:div.board.page-header
-   (map-indexed row-component board-table)])
+   (doall (map-indexed row-component board-table))])
 
 (defn game-status [score phase]
   (let [points-message (if (< 2048 score)
@@ -94,15 +142,32 @@
                 :class "glyphicon glyphicon glyphicon-new-window"}]]]]]]])
 
 (defn app-ui []
-  (let [{game-board :board phase :phase} @game-state]
+  (let [{{game-board :board phase :phase} :current-state} @game-state]
     [:div
      [app-header (game/board-score game-board) phase]
      [board-component game-board]]))
 
+(defn turn-animations [{:keys [:current-state]} direction]
+  (let [new-state (game/game-turn current-state direction)]
+    {:current-state current-state
+     :next-state new-state
+     :translations (transition-offsets (:board current-state)
+                                       (:board new-state))
+     :animation-progress nil}))
+
+(defn apply-turn [animating-state]
+  (assoc animating-state
+         :current-state (:next-state animating-state)
+         :next-state nil
+         :translations []
+         :animation-progress nil))
+
 (defn turn!
   "Updates the game state with results of a turn."
   [direction]
-  (swap! game-state game/game-turn direction))
+  (swap! game-state turn-animations direction)
+  (play-animations!
+    #(swap! game-state apply-turn)))
 
 (def handled-keys
   {38 :up
@@ -117,14 +182,15 @@
 (defn on-keydown [e]
   "Handles w, s, a, d or arrow keys.
 
-  Ignores the event if some modifiers are pressed."
+  Ignores the event if some modifiers are pressed or an animation
+  is in progress."
   (let [direction (handled-keys (.-keyCode e))
         modifiers (map (partial aget e)
                        ["ctrlKey" "shiftKey" "altKey" "metaKey"])]
-    (when (and direction (not-any? true? modifiers))
+    (when (and direction (not-any? true? modifiers)
+               (nil? (:animation-progress @game-state)))
       (.preventDefault e)
       (turn! direction))))
-
 
 (defonce game-state (r/atom (initial-game-state)))
 

@@ -41,6 +41,12 @@ div.board-cell {
     color: black;
 }
 
+div.board-cell-numeric {
+    /* Ignore parent's border when positioning. */
+    margin-top: -3px;
+    margin-left: -3px;
+}
+
 div.board-cell-2 {
     background-color: rgb(255, 235, 59);
 }
