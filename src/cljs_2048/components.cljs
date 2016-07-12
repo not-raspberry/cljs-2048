@@ -51,7 +51,7 @@
   (let [points-message (if (< 2048 score)
                          " points!" " / 2048")]
     (case phase
-      :init "Use arrows/wsad to play"
+      :init "Use arrows/wsad/swipe to play"
       :playing (str score points-message)
       :lost (str "Game over - " score " points"))))
 

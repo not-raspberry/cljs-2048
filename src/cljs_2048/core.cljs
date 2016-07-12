@@ -88,6 +88,12 @@
    39 :right
    68 :right})
 
+(defn handle-input!
+  "Plays a turn if not animating."
+  [direction]
+  (if-not (:animating? @game-state)
+    (turn! direction)))
+
 (defn on-keydown [e]
   "Handles w, s, a, d or arrow keys.
 
@@ -97,15 +103,69 @@
         modifiers (map (partial aget e)
                        ["ctrlKey" "shiftKey" "altKey" "metaKey"])]
     (when (and direction
-               (not-any? true? modifiers)
-               (not (:animating? @game-state)))
-      (.preventDefault e)
-      (turn! direction))))
+               (not-any? true? modifiers))
+      (handle-input! direction)
+      (.preventDefault e))))
+
+(defonce touch-state
+  (atom {:touching? false
+         :start-x nil
+         :start-y nil}))
+
+(defn on-touchstart [e]
+  (swap! touch-state
+         assoc
+         :touching? true
+         :start-x (.-screenX e)
+         :start-y (.-screenY e)))
+
+(defn on-touchmove [e]
+  (.preventDefault e))
+
+(defn offset->swipe-direction
+  "Given a vector of X and Y offsets, determines the swipe direction.
+
+  Returns direction keyword or nil if the offset is not sufficient for a swipe."
+  [[x-offset y-offset :as offsets]]
+  (let [[abs-x-offset abs-y-offset
+         :as abs-offsets] (map js/Math.abs offsets)]
+    (when
+      (and
+        ; offset length threshold:
+        (some #(<= constants/min-swipe-offset %) abs-offsets)
+        (or  ; x/y offsets ratio threshold:
+          (<= constants/min-swipe-offsets-ratio (/ abs-x-offset abs-y-offset))
+          (<= constants/min-swipe-offsets-ratio (/ abs-y-offset abs-x-offset))))
+
+      (if (> abs-x-offset abs-y-offset)
+        (if (pos? x-offset) :right :left)
+        (if (pos? y-offset) :down :up)))))
+
+(defn on-touchend [e]
+  (let [{:keys [:start-x :start-y]} @touch-state
+        end-x (.-screenX e)
+        end-y (.-screenY e)
+        x-offset (- end-x start-x)
+        y-offset (- end-y start-y)
+        swipe-direction (offset->swipe-direction [x-offset y-offset])]
+      (handle-input! swipe-direction)
+
+  (swap! touch-state
+         assoc
+         :touching? false
+         :start-x nil
+         :start-y nil)))
 
 (defn ^:export on-js-reload []
   (r/render [components/app-ui game-state reset-game-state!]
             (.getElementById js/document "content"))
   ; Remove events from the previous (re-)load:
   (events/removeAll (.-body js/document) "keydown")
+  (events/removeAll (.-body js/document) "touchstart")
+  (events/removeAll (.-body js/document) "touchend")
+  (events/removeAll (.-body js/document) "touchmove")
   (events/listen (.-body js/document) "keydown" on-keydown)
+  (events/listen (.-body js/document) "touchstart" on-touchstart)
+  (events/listen (.-body js/document) "touchmove" on-touchmove)
+  (events/listen (.-body js/document) "touchend" on-touchend)
   (println "Cljs reloaded."))

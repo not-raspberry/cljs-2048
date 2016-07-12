@@ -11,6 +11,16 @@ a:hover {
     color: #ddd;
 }
 
+/* A div to make the whole viewport swipe-able. */
+div#body-stretcher {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+
 div.page-header {
     margin-top: 20vh;
 }
