@@ -11,13 +11,18 @@ a:hover {
     color: #ddd;
 }
 
-div.page-header {
-    margin-top: 80px;
+/* A div to make the whole viewport swipe-able. */
+div#body-stretcher {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
 }
 
-/* Board layout. */
-div.board {
-    min-width: 540px;
+
+div.page-header {
+    margin-top: 20vh;
 }
 
 div.board-row {
@@ -28,14 +33,14 @@ div.board-cell {
     display: inline-block;
     /* To make empty inline-block divs display correctly: */
     vertical-align: bottom;
-    width: 110px;
-    height: 110px;
-    margin: 10px;
+    width: 16vmin;
+    height: 16vmin;
+    margin: 0.3vmin;
     border: 3px solid #555;
-    border-radius: 20px;
+    border-radius: 1vmin;
     text-align: center;
-    line-height: 110px;  /* Vertical align for the contents (a single line). */
-    font-size: 36px;
+    line-height: 16vmin;  /* Vertical align for the contents (a single line). */
+    font-size: 5.1vmin;
     font-weight: bold;
     background-color: #bbb;
     color: black;
@@ -45,6 +50,9 @@ div.board-cell-numeric {
     /* Ignore parent's border when positioning. */
     margin-top: -3px;
     margin-left: -3px;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 div.board-cell-2 {
