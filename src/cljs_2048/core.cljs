@@ -2,12 +2,11 @@
   (:require [clojure.set :as s]
             [goog.events :as events]
             [reagent.core :as r]
+            [cljs-2048.components :as components]
+            [cljs-2048.constants :as constants]
             [cljs-2048.game :as game]))
 
 (enable-console-print!)
-
-(declare game-state)
-
 
 (defn initial-game-state []
   {:current-state
@@ -15,12 +14,15 @@
     ; phase can be: :init (before the first move), :playing, :lost,
     :phase :init}
    :previous-state nil
-   :translations []
-   ; nil or a float between 0 and 1, where 1 is finished animation
+   :translations {}
    :animating? false})
 
-(defn select-values [m ks]
-  (map m ks))
+(defonce game-state (r/atom (initial-game-state)))
+
+(defn reset-game-state! []
+  (reset! game-state (initial-game-state)))
+
+(def select-values-by-keys (comp vals select-keys))
 
 (defn vector-subtraction
   "Subtracts each number of the first coll by the corresponding number in the second coll"
@@ -40,95 +42,17 @@
         ; shared elements that did not move will be moved by zero
         shared-cells-ids (s/intersection
                            (apply hash-set (keys old-indices-to-locations))
-                           (apply hash-set (keys new-indices-to-locations)))]
+                           (apply hash-set (keys new-indices-to-locations)))
+        old-cell-locations
+        (select-values-by-keys new-indices-to-locations shared-cells-ids)
+        new-cell-locations
+        (select-values-by-keys old-indices-to-locations shared-cells-ids)]
     (zipmap
       shared-cells-ids
-      (map
-        vector-subtraction
-        (select-values new-indices-to-locations shared-cells-ids)
-        (select-values old-indices-to-locations shared-cells-ids)))))
-
-(defn spacing
-  "Returns the requested number of nbsps as a string."
-  [width]
-  (apply str (repeat width "\u00a0")))
-
-(def cell-size 16)  ; vw
-(def transition-duration 0.15)  ; seconds
-
-(defn cell-translation
-  "Computes CSS style for translation animation."
-  [translation-row-col]
-  (let [[css-y css-x]
-        (map #(str (* cell-size %) "vw") translation-row-col)]
-    {:transition (str "top " transition-duration "s, "
-                      "left " transition-duration "s")
-     :top css-y
-     :left css-x
-     ; put elements that move the on top:
-     :z-index (apply + (map js/Math.abs translation-row-col))}))
-
-(defn cell-component
-  "Renders a cell, what consists of one static box that represents a field
-  on the board and optionally one number cell, which is rendered on top of it
-  and subject to animations."
-  [k cell]
-  (let [number (:value cell)
-        translation-offset (get-in @game-state [:translations (:id cell)])]
-    [:div.board-cell {:style {:position :relative} :key k}  ; static board tile
-     (if (pos? number)
-       ; Number cell on top of the board tile:
-       [:div.board-cell.board-cell-numeric
-        {:class (str "board-cell-" number)
-         :style (if translation-offset
-                  (cell-translation translation-offset))}
-        number])]))
-
-(defn row-component [k board-row]
-  [:div.board-row {:key k}
-   (doall (map-indexed cell-component board-row))])
-
-(defn board-component [board-table]
-  [:div.board.page-header
-   (doall (map-indexed row-component board-table))])
-
-(defn game-status [score phase]
-  (let [points-message (if (< 2048 score)
-                         " points!" " / 2048")]
-    (case phase
-      :init "Use arrows/wsad to play"
-      :playing (str score points-message)
-      :lost (str "Game over - " score " points"))))
-
-(defn app-header [score phase]
-  [:div {:class "navbar navbar-default navbar-fixed-top"}
-   [:div.container
-    [:div {:class "navbar-header"}
-     [:span {:class "navbar-brand"}
-      [:strong (game-status score phase)]
-      (spacing 3)
-      [:a {:href "#"
-           :title "Again"
-           :on-click #(reset! game-state (initial-game-state))}
-       [:span {:aria-hidden "true"
-               :class "glyphicon glyphicon glyphicon-refresh"}]]]]
-    [:div {:class "navbar-collapse collapse"}
-     [:ul {:class "nav navbar-nav navbar-right"}
-      [:li
-       [:a {:target "_blank"
-            :href "https://github.com/not-raspberry/cljs-2048"}
-        "GitHub" (spacing 2)
-        [:span {:aria-hidden "true"
-                :class "glyphicon glyphicon glyphicon-new-window"}]]]]]]])
-
-(defn app-ui []
-  (let [{{game-board :board phase :phase} :current-state} @game-state]
-    [:div
-     [app-header (game/board-score game-board) phase]
-     [board-component game-board]]))
+      (map vector-subtraction old-cell-locations new-cell-locations))))
 
 (defn turn-animations
-  "Transforms the entire game state to get ready to play animations."
+  "Transforms the game state to from the previous turn to the animations stage."
   [{:keys [:current-state]} direction]
   (let [new-state (game/game-turn current-state direction)]
     {:current-state current-state
@@ -138,12 +62,12 @@
      :animating? true}))
 
 (defn apply-turn
-  "Transforms the entire game state from the animations stage to the next turn."
+  "Transforms the game state from the animations stage to the next turn."
   [animating-state]
   (assoc animating-state
          :current-state (:next-state animating-state)
          :next-state nil
-         :translations []
+         :translations {}
          :animating? false))
 
 (defn turn!
@@ -152,7 +76,7 @@
   (swap! game-state turn-animations direction)
   (js/setTimeout
     #(swap! game-state apply-turn)
-    (* 1000 transition-duration)))
+    (* 1000 constants/transition-duration)))
 
 (def handled-keys
   {38 :up
@@ -172,15 +96,14 @@
   (let [direction (handled-keys (.-keyCode e))
         modifiers (map (partial aget e)
                        ["ctrlKey" "shiftKey" "altKey" "metaKey"])]
-    (when (and direction (not-any? true? modifiers)
+    (when (and direction
+               (not-any? true? modifiers)
                (not (:animating? @game-state)))
       (.preventDefault e)
       (turn! direction))))
 
-(defonce game-state (r/atom (initial-game-state)))
-
 (defn ^:export on-js-reload []
-  (r/render [app-ui]
+  (r/render [components/app-ui game-state reset-game-state!]
             (.getElementById js/document "content"))
   ; Remove events from the previous (re-)load:
   (events/removeAll (.-body js/document) "keydown")
