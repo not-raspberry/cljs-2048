@@ -53,7 +53,7 @@
   [width]
   (apply str (repeat width "\u00a0")))
 
-(def cell-size 130)  ; px
+(def cell-size 16)  ; vw
 (def animation-duration 100)  ; ms
 (def animation-frame-length 10)  ; ms
 
@@ -81,7 +81,7 @@
 (defn cell-translation
   [translation-row-col progress]
   (let [[css-y css-x]
-        (map #(str (* progress cell-size %) "px") translation-row-col)]
+        (map #(str (* progress cell-size %) "vw") translation-row-col)]
     {:position :absolute, :top css-y, :left css-x
      ; put elements that move the on top:
      :z-index (apply + (map js/Math.abs translation-row-col))}))
