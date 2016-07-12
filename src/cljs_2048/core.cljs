@@ -17,7 +17,7 @@
    :previous-state nil
    :translations []
    ; nil or a float between 0 and 1, where 1 is finished animation
-   :animation-progress nil})
+   :animating? false})
 
 (defn select-values [m ks]
   (map m ks))
@@ -54,38 +54,19 @@
   (apply str (repeat width "\u00a0")))
 
 (def cell-size 16)  ; vw
-(def animation-duration 100)  ; ms
-(def animation-frame-length 10)  ; ms
-
-(defn update-progress [last-progress]
-  (min 1
-    (+ last-progress
-       (/ animation-frame-length animation-duration))))
-
-(defn play-animations! [on-animaitons-end]
-  (swap! game-state assoc :animation-progress 0)
-
-  (let [interval-id (atom)]
-    (reset!
-      interval-id
-      (js/setInterval
-        (fn animate []
-          (let [{progress :animation-progress}
-                (swap! game-state update :animation-progress
-                       update-progress)]
-            (when (= progress 1)
-              (js/clearInterval @interval-id)
-              (on-animaitons-end))))
-        animation-frame-length))))
+(def transition-duration 0.15)  ; seconds
 
 (defn cell-translation
-  [translation-row-col progress]
+  "Computes CSS style for translation animation."
+  [translation-row-col]
   (let [[css-y css-x]
-        (map #(str (* progress cell-size %) "vw") translation-row-col)]
-    {:position :absolute, :top css-y, :left css-x
+        (map #(str (* cell-size %) "vw") translation-row-col)]
+    {:transition (str "top " transition-duration "s, "
+                      "left " transition-duration "s")
+     :top css-y
+     :left css-x
      ; put elements that move the on top:
      :z-index (apply + (map js/Math.abs translation-row-col))}))
-
 
 (defn cell-component
   "Renders a cell, what consists of one static box that represents a field
@@ -93,15 +74,14 @@
   and subject to animations."
   [k cell]
   (let [number (:value cell)
-        {progress :animation-progress
-          {translation-offset (:id cell)} :translations} @game-state
-        style (if translation-offset
-                (cell-translation translation-offset progress))]
-    [:div.board-cell {:style {:position :relative} :key k}  ; board field
-     (if (pos? number)  ; number cell
+        translation-offset (get-in @game-state [:translations (:id cell)])]
+    [:div.board-cell {:style {:position :relative} :key k}  ; static board tile
+     (if (pos? number)
+       ; Number cell on top of the board tile:
        [:div.board-cell.board-cell-numeric
         {:class (str "board-cell-" number)
-         :style style}
+         :style (if translation-offset
+                  (cell-translation translation-offset))}
         number])]))
 
 (defn row-component [k board-row]
@@ -147,27 +127,32 @@
      [app-header (game/board-score game-board) phase]
      [board-component game-board]]))
 
-(defn turn-animations [{:keys [:current-state]} direction]
+(defn turn-animations
+  "Transforms the entire game state to get ready to play animations."
+  [{:keys [:current-state]} direction]
   (let [new-state (game/game-turn current-state direction)]
     {:current-state current-state
      :next-state new-state
      :translations (transition-offsets (:board current-state)
                                        (:board new-state))
-     :animation-progress nil}))
+     :animating? true}))
 
-(defn apply-turn [animating-state]
+(defn apply-turn
+  "Transforms the entire game state from the animations stage to the next turn."
+  [animating-state]
   (assoc animating-state
          :current-state (:next-state animating-state)
          :next-state nil
          :translations []
-         :animation-progress nil))
+         :animating? false))
 
 (defn turn!
   "Updates the game state with results of a turn."
   [direction]
   (swap! game-state turn-animations direction)
-  (play-animations!
-    #(swap! game-state apply-turn)))
+  (js/setTimeout
+    #(swap! game-state apply-turn)
+    (* 1000 transition-duration)))
 
 (def handled-keys
   {38 :up
@@ -188,7 +173,7 @@
         modifiers (map (partial aget e)
                        ["ctrlKey" "shiftKey" "altKey" "metaKey"])]
     (when (and direction (not-any? true? modifiers)
-               (nil? (:animation-progress @game-state)))
+               (not (:animating? @game-state)))
       (.preventDefault e)
       (turn! direction))))
 
