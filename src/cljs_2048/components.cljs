@@ -11,7 +11,7 @@
   "Computes CSS style for translation animation."
   [translation-row-col]
   (let [[css-y css-x]
-        (map #(str (* constants/cell-size %) "vw") translation-row-col)]
+        (map #(str (* constants/cell-size %) "vmin") translation-row-col)]
     {:transition (str "top " constants/transition-duration "s, "
                       "left " constants/transition-duration "s")
      :top css-y

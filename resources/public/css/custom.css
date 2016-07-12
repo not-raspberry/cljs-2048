@@ -33,14 +33,14 @@ div.board-cell {
     display: inline-block;
     /* To make empty inline-block divs display correctly: */
     vertical-align: bottom;
-    width: 16vw;
-    height: 16vw;
-    margin: 0.3vw;
+    width: 16vmin;
+    height: 16vmin;
+    margin: 0.3vmin;
     border: 3px solid #555;
-    border-radius: 1vw;
+    border-radius: 1vmin;
     text-align: center;
-    line-height: 16vw;  /* Vertical align for the contents (a single line). */
-    font-size: 5.1vw;
+    line-height: 16vmin;  /* Vertical align for the contents (a single line). */
+    font-size: 5.1vmin;
     font-weight: bold;
     background-color: #bbb;
     color: black;
