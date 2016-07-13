@@ -23,29 +23,27 @@
   "Renders a cell, what consists of one static box that represents a field
   on the board and optionally one number cell, which is rendered on top of it
   and subject to animations."
-  [k cell translations]
+  [cell translations new-cells-ids]
   (let [number (:value cell)
         translation-offset (translations (:id cell))]
-    [:div.board-cell {:style {:position :relative} :key k}  ; static board tile
+    [:div.board-cell {:style {:position :relative} :key (:id cell)}  ; static board tile
      (if (pos? number)
        ; Number cell on top of the board tile:
        [:div.board-cell.board-cell-numeric
-        {:class (str "board-cell-" number)
-         :style (if translation-offset
-                  (cell-translation translation-offset))}
+        {:class (clojure.string/join
+                  " "
+                  [(str "board-cell-" number)
+                   (when (contains? new-cells-ids (:id cell)) "new-cell")])
+         :style (when translation-offset (cell-translation translation-offset))}
         number])]))
 
-(defn row-component [k board-row translations]
-  [:div.board-row {:key k}
-   (map-indexed
-     #(cell-component %1 %2 translations)
-     board-row)])
-
-(defn board-component [board-table translations]
+(defn board-component [board-table translations new-cells-ids]
   [:div.board.page-header
-   (map-indexed
-     #(row-component %1 %2 translations)
-     board-table)])
+   (for [x (range 4)]
+     [:div.board-row {:key x}
+      (for [y (range 4)]
+        (cell-component (get-in board-table [x y])
+                        translations new-cells-ids))])])
 
 (defn game-status [score phase]
   (let [points-message (if (< 2048 score)
@@ -77,8 +75,9 @@
                 :class "glyphicon glyphicon glyphicon-new-window"}]]]]]]])
 
 (defn app-ui [game-state-atom on-reset-game-state]
-  (let [{{game-board :board phase :phase} :current-state
-         translations :translations} @game-state-atom]
+  (let [{{:keys [:board :phase :new-cells-ids]} :current-state
+         translations :translations}
+        @game-state-atom]
     [:div
-     [app-header (game/board-score game-board) phase on-reset-game-state]
-     [board-component game-board translations]]))
+     [app-header (game/board-score board) phase on-reset-game-state]
+     [board-component board translations new-cells-ids]]))

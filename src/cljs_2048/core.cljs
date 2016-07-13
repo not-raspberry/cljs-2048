@@ -9,13 +9,15 @@
 (enable-console-print!)
 
 (defn initial-game-state []
-  {:current-state
-   {:board (game/new-board 4)
-    ; phase can be: :init (before the first move), :playing, :lost,
-    :phase :init}
-   :previous-state nil
-   :translations {}
-   :animating? false})
+  (let [game-board (game/new-board 4)]
+    {:current-state
+     {:board game-board
+      ; phase can be: :init (before the first move), :playing, :lost,
+      :phase :init
+      :new-cells-ids (into #{} (map :id (game/board-cells game-board)))}
+     :next-state nil
+     :translations {}
+     :animating? false}))
 
 (defonce game-state (r/atom (initial-game-state)))
 

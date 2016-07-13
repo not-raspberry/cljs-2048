@@ -1,7 +1,7 @@
 (ns cljs-2048.game)
 
 
-(declare inject-number zeros-locations)
+(declare inject-number-randomly)
 
 (defrecord Cell
   [value      ; numeric value of the cell, a power of 2; zero for empty cells
@@ -37,8 +37,7 @@
   and the rest of zeros."
   [size]
   (let [add-cell-carelessly
-        (fn [board]
-          (inject-number board (zeros-locations board)))]
+        (fn [board] (inject-number-randomly board))]
     (-> (empty-board size)      ; Empty board is going to have all the zeros
         add-cell-carelessly     ; in the world so we can just add the zeros
         add-cell-carelessly)))  ; without checking if there's room for them.
@@ -169,14 +168,28 @@
            (for [zero-row-index (zeros-in-row row)] [i zero-row-index])))
        (apply concat)))
 
-(defn inject-number
-  "Places 2 or 4 onto one of empty fields."
-  ([board empty-fields-coords]
-   (inject-number board empty-fields-coords rand-nth #(rand-nth [2 2 4])))
-  ([board empty-fields-coords rand-nth-new-number-fn cell-value-function]
-   (let [location (rand-nth-new-number-fn empty-fields-coords)
-         new-cell-val (make-cell (cell-value-function))]
-     (assoc-in board location new-cell-val))))
+(defn inject-cell
+  "Places a cell with the given number onto the given field."
+  [board target-coords cell]
+  (assoc-in board target-coords cell))
+
+(defn tile-insertion-coords
+  "Returns a vector of [x y] coordinates of a randomly chosen empty field in the board."
+  [board]
+  (let [locations (zeros-locations board)]
+    (assert (not-empty locations)
+            "There must be some empty fields to drop a number to.")
+    (rand-nth (zeros-locations board))))
+
+(defn random-cell []
+  (make-cell (rand-nth [2 2 4])))
+
+(defn inject-number-randomly
+  "Places 2 or 4 onto one of the empty fields of the board."
+  [board]
+  (let [new-cell (random-cell)
+        location (tile-insertion-coords board)]
+    (inject-cell board location new-cell)))
 
 (defn unplayable?
   "Returns true if it's not possible to move/combine fields in any direction."
@@ -186,7 +199,7 @@
                  [:up :left :down :right])))
 
 (defn game-turn
-  "Processes the game state according to the passed turn.
+  "Processes the game state according to the passed turn direction.
 
   Depending on the passed state and the direction, the resulting state may be:
   - game in progress, some fields moved/squashed
@@ -197,8 +210,9 @@
   (let [squashed-board (squash-board prev-board direction)]
     (if (= (board-cell-values squashed-board) (board-cell-values prev-board))
       prev-state  ; Illegal move - ignore.
-      (let [new-board (inject-number
-                        squashed-board (zeros-locations squashed-board))]
-        (if (unplayable? new-board)
-          {:phase :lost, :board new-board}
-          {:phase :playing, :board new-board})))))
+      (let [new-cell-location (tile-insertion-coords squashed-board)
+            new-cell (random-cell)
+            new-board (inject-cell squashed-board new-cell-location new-cell)]
+        {:phase (if (unplayable? new-board) :lost :playing)
+         :board new-board,
+         :new-cells-ids #{(:id new-cell)}}))))
