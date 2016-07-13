@@ -182,7 +182,7 @@
     (rand-nth (zeros-locations board))))
 
 (defn random-cell []
-  (make-cell (rand-nth [2 2 4])))
+  (make-cell (rand-nth [2 2 2 4])))
 
 (defn inject-number-randomly
   "Places 2 or 4 onto one of the empty fields of the board."
