@@ -32,8 +32,8 @@
   (map - coll1 coll2))
 
 (defn transition-offsets [old-state new-state]
-  "Returns a map of cells' ids to offsets (in full fields) they should move when
-  animating the transition from the previous state to the new one.
+  "Returns a map of cells' ids to numbers of squares they should move vertically or horizontally
+  when animating the transition from the previous state to the new one.
 
   The offset [-1 0] means 1 cell left.
 

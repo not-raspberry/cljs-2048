@@ -144,7 +144,7 @@
   (vec (map vec seqs)))
 
 (defn squash-board
-  "Combines fields in the given direction."
+  "Combines cells in the given direction."
   [board direction]
   (->> (board->left-view direction board)
        (map (comp (partial empty-pad (count board))
@@ -169,30 +169,30 @@
        (apply concat)))
 
 (defn inject-cell
-  "Places a cell with the given number onto the given field."
+  "Places a cell with the given number onto the given square."
   [board target-coords cell]
   (assoc-in board target-coords cell))
 
 (defn tile-insertion-coords
-  "Returns a vector of [x y] coordinates of a randomly chosen empty field in the board."
+  "Returns a vector of [x y] coordinates of a randomly chosen empty square in the board."
   [board]
   (let [locations (zeros-locations board)]
     (assert (not-empty locations)
-            "There must be some empty fields to drop a number to.")
+            "There must be some empty squares to drop a number to.")
     (rand-nth (zeros-locations board))))
 
 (defn random-cell []
   (make-cell (rand-nth [2 2 2 4])))
 
 (defn inject-number-randomly
-  "Places 2 or 4 onto one of the empty fields of the board."
+  "Places 2 or 4 onto one of the empty suares of the board."
   [board]
   (let [new-cell (random-cell)
         location (tile-insertion-coords board)]
     (inject-cell board location new-cell)))
 
 (defn unplayable?
-  "Returns true if it's not possible to move/combine fields in any direction."
+  "Returns true if it's not possible to move/combine squares in any direction."
   [board]
   (not-any? #(not= board %)
             (map (partial squash-board board)
@@ -202,10 +202,10 @@
   "Processes the game state according to the passed turn direction.
 
   Depending on the passed state and the direction, the resulting state may be:
-  - game in progress, some fields moved/squashed
+  - game in progress, some cells moved/squashed
   - game lost - no possible moves
-  - illegal move - squashing the fields in certain direction will not result
-    in fields moved/squashed."
+  - illegal move - squashing the cells in the given direction will not result
+    in any cells moved/squashed."
   [{prev-board :board phase :phase :as prev-state} direction]
   (let [squashed-board (squash-board prev-board direction)]
     (if (= (board-cell-values squashed-board) (board-cell-values prev-board))
