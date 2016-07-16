@@ -1,10 +1,12 @@
 (ns cljs-2048.core
   (:require [clojure.set :as s]
+            [cljs.core.async :refer [chan put! <! timeout dropping-buffer]]
             [goog.events :as events]
             [reagent.core :as r]
             [cljs-2048.components :as components]
             [cljs-2048.constants :as constants]
-            [cljs-2048.game :as game]))
+            [cljs-2048.game :as game])
+  (:require-macros [cljs.core.async.macros :refer [go-loop]]))
 
 (enable-console-print!)
 
@@ -21,15 +23,23 @@
 
 (defonce game-state (r/atom (initial-game-state)))
 
-(defn reset-game-state! []
-  (reset! game-state (initial-game-state)))
-
-(def select-values-by-keys (comp vals select-keys))
-
 (defn vector-subtraction
   "Subtracts each number of the first coll by the corresponding number in the second coll"
   [coll1 coll2]
   (map - coll1 coll2))
+
+(defn transition-offsets-from-id-to-location-maps
+  "Given 2 maps of cell ids to cell locations, builds a map of cell ids
+  to location offsets."
+  [old-indices-to-locations new-indices-to-locations]
+  (reduce-kv
+    (fn [m k v]
+      (if (and (contains? old-indices-to-locations k)
+               (not= (new-indices-to-locations k) (old-indices-to-locations k)))
+        (assoc m k (vector-subtraction (new-indices-to-locations k) (old-indices-to-locations k)))
+        m))
+    {}
+    new-indices-to-locations))
 
 (defn transition-offsets [old-state new-state]
   "Returns a map of cells' ids to numbers of squares they should move vertically or horizontally
@@ -39,19 +49,10 @@
 
   E.g.:
   {cell-7987 (0 -3), cell-7674 (0 0), cell-7964 (0 -2), cell-7928 (0 0), cell-7919 (0 -2), ...}"
-  (let [old-indices-to-locations (game/cell-ids-to-locations old-state)
-        new-indices-to-locations (game/cell-ids-to-locations new-state)
-        ; shared elements that did not move will be moved by zero
-        shared-cells-ids (s/intersection
-                           (apply hash-set (keys old-indices-to-locations))
-                           (apply hash-set (keys new-indices-to-locations)))
-        old-cell-locations
-        (select-values-by-keys new-indices-to-locations shared-cells-ids)
-        new-cell-locations
-        (select-values-by-keys old-indices-to-locations shared-cells-ids)]
-    (zipmap
-      shared-cells-ids
-      (map vector-subtraction old-cell-locations new-cell-locations))))
+  (let [old-indices-to-locations (game/own-cell-ids-to-locations old-state)
+        new-indices-to-locations (game/own-and-parents-cell-ids-to-locations new-state)]
+    (transition-offsets-from-id-to-location-maps
+      old-indices-to-locations new-indices-to-locations)))
 
 (defn turn-animations
   "Transforms the game state to from the previous turn to the animations stage."
@@ -72,13 +73,28 @@
          :translations {}
          :animating? false))
 
-(defn turn!
-  "Updates the game state with results of a turn."
-  [direction]
-  (swap! game-state turn-animations direction)
-  (js/setTimeout
-    #(swap! game-state apply-turn)
-    (* 1000 constants/transition-duration)))
+(def actions-chan (chan (dropping-buffer 1)))
+(def transitions-chan (chan))
+
+(go-loop []
+         (let [action (<! actions-chan)]
+           (if (= action :reset)
+             (reset! game-state (initial-game-state))
+
+             (do ; turn
+                 (swap! game-state turn-animations action)
+                 ; Wait for all translations to complete:
+                 (doseq [_ (:translations @game-state)]
+                   (<! transitions-chan))
+                 (swap! game-state apply-turn)
+
+                 ; And now... The Humiliating Timeout:
+                 ; We have to give Reagent time to rerender. Otherwise,
+                 ; when pressing the same key constantly, race conditions
+                 ; between CSS transition and components occur.
+                 (<! (timeout 20))
+                 )))
+         (recur))
 
 (def handled-keys
   {38 :up
@@ -94,7 +110,7 @@
   "Plays a turn if not animating."
   [direction]
   (if-not (:animating? @game-state)
-    (turn! direction)))
+    (put! actions-chan direction)))
 
 (defn on-keydown [e]
   "Handles w, s, a, d or arrow keys.
@@ -158,8 +174,16 @@
          :start-x nil
          :start-y nil)))
 
+(defn reset-game-state! []
+  (put! actions-chan :reset))
+
+(defn on-transition-end! [id]
+  (put! transitions-chan id))
+
+
 (defn ^:export on-js-reload []
-  (r/render [components/app-ui game-state reset-game-state!]
+  (r/render [components/app-ui game-state reset-game-state!
+             on-transition-end!]
             (.getElementById js/document "content"))
   ; Remove events from the previous (re-)load:
   (events/removeAll (.-body js/document) "keydown")

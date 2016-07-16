@@ -54,26 +54,53 @@
 (defn mapcat-indexed [f coll]
   (apply concat (map-indexed f coll)))
 
-(defn cell-ids-to-locations
+(defn cells-coords
+  "Returns a seq of board cells and their coordinates.
+
+  E.g.:
+  ([#cljs-2048.game.Cell{:value 2, :id cell-151, :made-of nil} [0 0]]
+   [#cljs-2048.game.Cell{:value 4, :id cell-152, :made-of nil} [0 1]])"
+  [board]
+  (mapcat-indexed
+    (fn [row-index row]
+      (map-indexed
+        (fn [cell-index cell]
+          [[row-index cell-index] cell])
+        row))
+    board))
+
+(defn own-cell-ids-to-locations [board]
   "Creates a map from cell identities to their locations on the board.
 
-  Cell identifiers are the :id properties and members of the :mede-of vector.
+  Cell identifiers are the :id properties.
 
   E.g.:
   cljs-2048.game=> (cell-ids-to-locations
                      [[(make-cell 1 [\"cell-12\"])] [(make-cell 3)]])
   {\"cell-12\" [0 0], cell-7433 [0 0], cell-7434 [1 0]}"
   [board]
-  (into {}
-        (mapcat-indexed
-          (fn [row-index row]
-            (mapcat-indexed
-              (fn [cell-index cell]
-                (let [location [row-index cell-index]]
-                  (for [id (conj (:made-of cell) (:id cell))]
-                    [id location])))
-              row))
-          board)))
+  (->> (cells-coords board)
+       (map
+         (fn [[coords cell]]
+           [(:id cell) coords]))
+       (into {})))
+
+(defn own-and-parents-cell-ids-to-locations
+  "Creates a map from cell identities to their locations on the board.
+
+  Cell identifiers are the :id properties and members of the :made-of vector.
+
+  E.g.:
+  cljs-2048.game=> (cell-ids-to-locations
+                     [[(make-cell 1 [\"cell-12\"])] [(make-cell 3)]])
+  {cell-7433 [0 0], cell-7434 [1 0]}"
+  [board]
+  (->> (cells-coords board)
+       (mapcat
+         (fn [[coords cell]]
+           (for [id (conj (:made-of cell) (:id cell))]
+             [id coords])))
+       (into {})))
 
 (defn transpose [board]
   (apply (partial map vector) board))
