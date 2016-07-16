@@ -23,7 +23,7 @@
   "Renders a cell, what consists of one static box that represents a field
   on the board and optionally one number cell, which is rendered on top of it
   and subject to animations."
-  [k cell translations new-cells-ids on-transition-end]
+  [k cell translations new-cells-ids]
   (let [number (:value cell)
         translation-offset (translations (:id cell))]
     [:div.board-cell {:style {:position :relative} :key k}  ; static board tile
@@ -34,18 +34,16 @@
                   " "
                   [(str "board-cell-" number)
                    (when (contains? new-cells-ids (:id cell)) "new-cell")])
-         :style (when translation-offset (cell-translation translation-offset))
-         :on-transition-end on-transition-end}
+         :style (when translation-offset (cell-translation translation-offset))}
         number])]))
 
-(defn board-component [board-table translations new-cells-ids on-transition-end]
+(defn board-component [board-table translations new-cells-ids]
   [:div.board.page-header
    (for [x (range 4)]
      [:div.board-row {:key x}
       (for [y (range 4)]
-        (cell-component
-          y (get-in board-table [x y]) translations new-cells-ids
-          on-transition-end))])])
+        (cell-component y (get-in board-table [x y])
+                        translations new-cells-ids))])])
 
 (defn game-status [score phase]
   (let [points-message (if (< 2048 score)
@@ -76,10 +74,10 @@
         [:span {:aria-hidden "true"
                 :class "glyphicon glyphicon glyphicon-new-window"}]]]]]]])
 
-(defn app-ui [game-state-atom on-reset-game-state on-transition-end]
+(defn app-ui [game-state-atom on-reset-game-state]
   (let [{{:keys [:board :phase :new-cells-ids]} :current-state
          translations :translations}
         @game-state-atom]
     [:div
      [app-header (game/board-score board) phase on-reset-game-state]
-     [board-component board translations new-cells-ids on-transition-end]]))
+     [board-component board translations new-cells-ids]]))

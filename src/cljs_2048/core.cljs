@@ -1,12 +1,12 @@
 (ns cljs-2048.core
   (:require [clojure.set :as s]
-            [cljs.core.async :refer [chan put! <! timeout dropping-buffer]]
+            [cljs.core.async :refer [chan put! <! timeout dropping-buffer close!]]
             [goog.events :as events]
             [reagent.core :as r]
             [cljs-2048.components :as components]
             [cljs-2048.constants :as constants]
             [cljs-2048.game :as game])
-  (:require-macros [cljs.core.async.macros :refer [go-loop]]))
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
 (enable-console-print!)
 
@@ -74,27 +74,6 @@
          :animating? false))
 
 (def actions-chan (chan (dropping-buffer 1)))
-(def transitions-chan (chan))
-
-(go-loop []
-         (let [action (<! actions-chan)]
-           (if (= action :reset)
-             (reset! game-state (initial-game-state))
-
-             (do ; turn
-                 (swap! game-state turn-animations action)
-                 ; Wait for all translations to complete:
-                 (doseq [_ (:translations @game-state)]
-                   (<! transitions-chan))
-                 (swap! game-state apply-turn)
-
-                 ; And now... The Humiliating Timeout:
-                 ; We have to give Reagent time to rerender. Otherwise,
-                 ; when pressing the same key constantly, race conditions
-                 ; between CSS transition and components occur.
-                 (<! (timeout 20))
-                 )))
-         (recur))
 
 (def handled-keys
   {38 :up
@@ -177,21 +156,44 @@
 (defn reset-game-state! []
   (put! actions-chan :reset))
 
-(defn on-transition-end! [id]
-  (put! transitions-chan id))
+(def game-loop
+  (go-loop []
+           (when-some [action (<! actions-chan)]
+             (if (= action :reset)
+               (reset! game-state (initial-game-state))
+
+               (do ; turn
+                   (swap! game-state turn-animations action)
+                   (r/flush)
+                   ; Wait for all translations to complete (transitionend is
+                   ; unreliable - does not work on browsers without transitions
+                   ; and likes not to fire for a number of reasons):
+                   (<! (timeout (* 1000 constants/transition-duration)))
+                   (swap! game-state apply-turn)
+                   (r/flush)
+                   ; Apply some minimum pause between moves:
+                   (<! (timeout 100))))
+             (recur))))
 
 
 (defn ^:export on-js-reload []
-  (r/render [components/app-ui game-state reset-game-state!
-             on-transition-end!]
+  (r/render [components/app-ui game-state reset-game-state!]
             (.getElementById js/document "content"))
+
   ; Remove events from the previous (re-)load:
-  (events/removeAll (.-body js/document) "keydown")
-  (events/removeAll (.-body js/document) "touchstart")
-  (events/removeAll (.-body js/document) "touchend")
-  (events/removeAll (.-body js/document) "touchmove")
-  (events/listen (.-body js/document) "keydown" on-keydown)
-  (events/listen (.-body js/document) "touchstart" on-touchstart)
-  (events/listen (.-body js/document) "touchmove" on-touchmove)
-  (events/listen (.-body js/document) "touchend" on-touchend)
+  (doseq [event ["keydown" "touchstart" "touchmove" "touchend"
+                 "figwheel.before-js-reload"]]
+    (events/removeAll (.-body js/document) event))
+
+
+  (doto (.-body js/document)
+    (events/listen "keydown" on-keydown)
+    (events/listen "touchstart" on-touchstart)
+    (events/listen "touchmove" on-touchmove)
+    (events/listen "touchend" on-touchend)
+    (events/listen  "figwheel.before-js-reload"
+                   (fn before-js-reload []
+                     (close! actions-chan)
+                     (println "Actions channel closed."))))
+
   (println "Cljs reloaded."))
