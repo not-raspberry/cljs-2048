@@ -1,11 +1,12 @@
 (ns cljs-2048.core
   (:require [clojure.set :as s]
-            [cljs.core.async :refer [chan put! <! timeout dropping-buffer close!]]
+            [cljs.core.async :refer [put! <! timeout]]
             [goog.events :as events]
             [reagent.core :as r]
             [cljs-2048.components :as components]
             [cljs-2048.constants :as constants]
-            [cljs-2048.game :as game])
+            [cljs-2048.game :as game]
+            [cljs-2048.input :as input])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
 (enable-console-print!)
@@ -73,96 +74,16 @@
          :translations {}
          :animating? false))
 
-(def actions-chan (chan (dropping-buffer 1)))
-
-(def handled-keys
-  {38 :up
-   87 :up
-   40 :down
-   83 :down
-   37 :left
-   65 :left
-   39 :right
-   68 :right})
-
-(defn handle-input!
-  "Plays a turn if not animating."
-  [direction]
-  (if-not (:animating? @game-state)
-    (put! actions-chan direction)))
-
-(defn on-keydown [e]
-  "Handles w, s, a, d or arrow keys.
-
-  Ignores the event if some modifiers are pressed or an animation
-  is in progress."
-  (let [direction (handled-keys (.-keyCode e))
-        modifiers (map (partial aget e)
-                       ["ctrlKey" "shiftKey" "altKey" "metaKey"])]
-    (when (and direction
-               (not-any? true? modifiers))
-      (handle-input! direction)
-      (.preventDefault e))))
-
-(defonce touch-state
-  (atom {:touching? false
-         :start-x nil
-         :start-y nil}))
-
-(defn on-touchstart [e]
-  (swap! touch-state
-         assoc
-         :touching? true
-         :start-x (.-screenX e)
-         :start-y (.-screenY e)))
-
-(defn on-touchmove [e]
-  (.preventDefault e))
-
-(defn offset->swipe-direction
-  "Given a vector of X and Y offsets, determines the swipe direction.
-
-  Returns direction keyword or nil if the offset is not sufficient for a swipe."
-  [[x-offset y-offset :as offsets]]
-  (let [[abs-x-offset abs-y-offset
-         :as abs-offsets] (map js/Math.abs offsets)]
-    (when
-      (and
-        ; offset length threshold:
-        (some #(<= constants/min-swipe-offset %) abs-offsets)
-        (or  ; x/y offsets ratio threshold:
-          (<= constants/min-swipe-offsets-ratio (/ abs-x-offset abs-y-offset))
-          (<= constants/min-swipe-offsets-ratio (/ abs-y-offset abs-x-offset))))
-
-      (if (> abs-x-offset abs-y-offset)
-        (if (pos? x-offset) :right :left)
-        (if (pos? y-offset) :down :up)))))
-
-(defn on-touchend [e]
-  (let [{:keys [:start-x :start-y]} @touch-state
-        end-x (.-screenX e)
-        end-y (.-screenY e)
-        x-offset (- end-x start-x)
-        y-offset (- end-y start-y)
-        swipe-direction (offset->swipe-direction [x-offset y-offset])]
-      (handle-input! swipe-direction)
-
-  (swap! touch-state
-         assoc
-         :touching? false
-         :start-x nil
-         :start-y nil)))
-
 (defn reset-game-state! []
-  (put! actions-chan :reset))
+  (put! input/actions-chan :reset))
 
-(def game-loop
+(defn run-game-loop! []
   (go-loop []
-           (when-some [action (<! actions-chan)]
+           (when-some [action (<! input/actions-chan)]
              (if (= action :reset)
                (reset! game-state (initial-game-state))
 
-               (do ; turn
+               (do ; move
                    (swap! game-state turn-animations action)
                    (r/flush)
                    ; Wait for all translations to complete (transitionend is
@@ -187,13 +108,15 @@
 
 
   (doto (.-body js/document)
-    (events/listen "keydown" on-keydown)
-    (events/listen "touchstart" on-touchstart)
-    (events/listen "touchmove" on-touchmove)
-    (events/listen "touchend" on-touchend)
+    (events/listen "keydown" input/on-keydown)
+    (events/listen "touchstart" input/on-touchstart)
+    (events/listen "touchmove" input/on-touchmove)
+    (events/listen "touchend" input/on-touchend)
     (events/listen  "figwheel.before-js-reload"
                    (fn before-js-reload []
-                     (close! actions-chan)
+                     (input/unmount!)
                      (println "Actions channel closed."))))
 
+  (input/mount!)
+  (run-game-loop!)
   (println "Cljs reloaded."))

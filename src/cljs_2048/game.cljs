@@ -36,11 +36,9 @@
   "Returns a size × size board with 2 initial values (twos or fours)
   and the rest of zeros."
   [size]
-  (let [add-cell-carelessly
-        (fn [board] (inject-number-randomly board))]
-    (-> (empty-board size)      ; Empty board is going to have all the zeros
-        add-cell-carelessly     ; in the world so we can just add the zeros
-        add-cell-carelessly)))  ; without checking if there's room for them.
+  (-> (empty-board size)        ; Empty board is going to have all the zeros
+      inject-number-randomly    ; in the world so we can just add the zeros
+      inject-number-randomly))  ; without checking if there's room for them.
 
 (defn board-cells [board]
   (flatten board))

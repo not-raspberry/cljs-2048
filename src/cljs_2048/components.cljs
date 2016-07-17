@@ -5,7 +5,7 @@
 (defn spacing
   "Returns the requested number of nbsps as a string."
   [width]
-  (apply str (repeat width "\u00a0")))
+  (clojure.string/join (repeat width "\u00a0")))
 
 (defn cell-translation
   "Computes CSS style for translation animation."
